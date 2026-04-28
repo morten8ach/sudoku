@@ -150,6 +150,8 @@
     color: var(--paper);
   }
 
+  .controls.hidden { display: none; }
+
   .info {
     display: flex;
     justify-content: space-between;
@@ -411,7 +413,7 @@
   <button class="header-btn header-btn-right" id="themeToggle" title="Skift mellem lys og mørk">🌙</button>
 </header>
 
-<div class="controls">
+<div class="controls hidden">
   <button data-difficulty="easy" class="active">Let</button>
   <button data-difficulty="medium">Mellem</button>
   <button data-difficulty="hard">Svær</button>
@@ -444,7 +446,7 @@
 <div class="win-message" id="winMessage">
   <h2>Færdig!</h2>
   <p id="winStats"></p>
-  <button onclick="newGame()">Nyt spil</button>
+  <button id="winNewGame">Nyt spil</button>
 </div>
 
 <!-- Bekræftelses-dialog ved nyt spil -->
@@ -488,6 +490,7 @@ let mistakes = 0;
 let timerInterval = null;
 let difficulty = 'easy';
 let startTime = Date.now();
+let gameActive = false;
 
 function emptyBoard() {
   return Array.from({length: 9}, () => Array(9).fill(0));
@@ -574,6 +577,30 @@ function loadGame() {
 
 function clearSavedGame() {
   localStorage.removeItem('sudokuState');
+}
+
+function showDifficultyPicker() {
+  gameActive = false;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  clearSavedGame();
+  document.querySelector('.controls').classList.remove('hidden');
+}
+
+function hideDifficultyPicker() {
+  gameActive = true;
+  document.querySelector('.controls').classList.add('hidden');
+}
+
+function renderEmptyBoard() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      boardEl.appendChild(cell);
+    }
+  }
 }
 
 // ==================== UI ====================
@@ -734,6 +761,7 @@ function startTimer() {
 
 function newGame() {
   document.getElementById('winMessage').classList.remove('show');
+  hideDifficultyPicker();
   const { puzzle, solution: sol } = makePuzzle(difficulty);
   board = puzzle.map(row => [...row]);
   solution = sol;
@@ -749,6 +777,7 @@ function newGame() {
 
 // Genoptag et tidligere spil fra gemt tilstand
 function resumeGame(state) {
+  gameActive = true;
   board = state.board;
   solution = state.solution;
   givens = state.givens;
@@ -789,25 +818,29 @@ document.getElementById('erase').addEventListener('click', eraseCell);
 document.getElementById('hint').addEventListener('click', giveHint);
 // Nyt spil med bekræftelse hvis et spil er i gang
 document.getElementById('newgameTop').addEventListener('click', () => {
-  // Tjek om der er et igangværende spil (mindst ét felt udfyldt af brugeren)
-  let igangværende = false;
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
-      if (board[r][c] !== 0 && !givens[r][c]) {
-        igangværende = true;
-        break;
-      }
-    }
-    if (igangværende) break;
+  // Færdig-dialog er åben: spillet er allerede afsluttet — vis blot sværhedsgrader
+  if (document.getElementById('winMessage').classList.contains('show')) {
+    document.getElementById('winMessage').classList.remove('show');
+    showDifficultyPicker();
+    return;
   }
 
-  if (igangværende) {
-    // Vis vores egen bekræftelses-dialog
+  // Allerede i sværhedsgrads-valgfunktion: intet at gøre
+  if (!gameActive) return;
+
+  // Tjek om brugeren har udfyldt nogen felter (noget at miste)
+  let harBevægelser = false;
+  for (let r = 0; r < 9 && !harBevægelser; r++) {
+    for (let c = 0; c < 9 && !harBevægelser; c++) {
+      if (board[r][c] !== 0 && !givens[r][c]) harBevægelser = true;
+    }
+  }
+
+  if (harBevægelser) {
     document.getElementById('overlay').classList.add('show');
     document.getElementById('confirmDialog').classList.add('show');
   } else {
-    // Intet at miste, bare start nyt spil
-    newGame();
+    showDifficultyPicker();
   }
 });
 
@@ -820,10 +853,15 @@ function lukDialog() {
 document.getElementById('confirmCancel').addEventListener('click', lukDialog);
 document.getElementById('confirmOK').addEventListener('click', () => {
   lukDialog();
-  newGame();
+  showDifficultyPicker();
 });
 // Klik på den mørke baggrund lukker også dialogen
 document.getElementById('overlay').addEventListener('click', lukDialog);
+
+document.getElementById('winNewGame').addEventListener('click', () => {
+  document.getElementById('winMessage').classList.remove('show');
+  showDifficultyPicker();
+});
 
 document.addEventListener('keydown', e => {
   if (e.key >= '1' && e.key <= '9') placeNumber(parseInt(e.key));
@@ -840,12 +878,13 @@ document.addEventListener('keydown', e => {
 
 // ==================== START ====================
 
-// Tjek om der er et gemt spil. Hvis ja: fortsæt det. Hvis nej: start nyt.
+// Tjek om der er et gemt spil. Hvis ja: fortsæt det. Hvis nej: vis sværhedsgrader.
 const gemt = loadGame();
 if (gemt && gemt.board && gemt.solution) {
   resumeGame(gemt);
 } else {
-  newGame();
+  renderEmptyBoard();
+  showDifficultyPicker();
 }
 
 // Registrer service worker (gør appen offline-klar)
