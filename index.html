@@ -2,7 +2,7 @@
 <html lang="da">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2a2a2a" id="themeColorMeta">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -403,15 +403,25 @@
     color: var(--muted);
     text-align: center;
   }
+
+  /* SVG-ikoner i cirkelknapperne sidder altid præcist i midten */
+  .header-btn svg { display: block; }
+
+  /* Deaktiveret tilstand når undo-stakken er tom */
+  .actions button:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+  .actions button:disabled:active { background: var(--paper); color: var(--ink); }
 </style>
 </head>
 <body>
 
 <header>
-  <button class="header-btn header-btn-left" id="newgameTop" title="Nyt spil" aria-label="Nyt spil">↻</button>
+  <button class="header-btn header-btn-left" id="newgameTop" title="Nyt spil" aria-label="Nyt spil"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
   <h1>Sudoku</h1>
   <div class="subtitle">Et tal-puslespil</div>
-  <button class="header-btn header-btn-right" id="themeToggle" title="Skift mellem lys og mørk">🌙</button>
+  <button class="header-btn header-btn-right" id="themeToggle" title="Skift mellem lys og mørk"></button>
 </header>
 
 <div class="controls hidden">
@@ -440,6 +450,7 @@
 </div>
 
 <div class="actions">
+  <button id="undoBtn" disabled>Fortryd</button>
   <button id="erase">Slet</button>
   <button id="hint">Tip</button>
 </div>
@@ -462,19 +473,24 @@
 </div>
 
 <script>
+// ==================== IKONER ====================
+
+const ICON_MOON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+const ICON_SUN  = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+
 // ==================== DARK MODE ====================
 
 // Hent gemt tema fra telefonens lager (eller brug 'lys' som standard)
 const gemtTema = localStorage.getItem('sudokuTheme') || 'light';
+document.getElementById('themeToggle').innerHTML = gemtTema === 'dark' ? ICON_SUN : ICON_MOON;
 if (gemtTema === 'dark') {
   document.documentElement.classList.add('dark');
-  document.getElementById('themeToggle').textContent = '☀';
   document.getElementById('themeColorMeta').setAttribute('content', '#1a1a1a');
 }
 
 document.getElementById('themeToggle').addEventListener('click', () => {
   const erMørk = document.documentElement.classList.toggle('dark');
-  document.getElementById('themeToggle').textContent = erMørk ? '☀' : '🌙';
+  document.getElementById('themeToggle').innerHTML = erMørk ? ICON_SUN : ICON_MOON;
   document.getElementById('themeColorMeta').setAttribute(
     'content', erMørk ? '#1a1a1a' : '#2a2a2a'
   );
@@ -492,6 +508,7 @@ let timerInterval = null;
 let difficulty = 'easy';
 let startTime = Date.now();
 let gameActive = false;
+let undoStack = [];
 
 function emptyBoard() {
   return Array.from({length: 9}, () => Array(9).fill(0));
@@ -698,10 +715,17 @@ function updateHighlights() {
   });
 }
 
+function updateUndoBtn() {
+  document.getElementById('undoBtn').disabled = undoStack.length === 0;
+}
+
 function placeNumber(num) {
   if (!selected) return;
   const { row, col } = selected;
   if (givens[row][col]) return;
+
+  const oldValue = board[row][col];
+  const oldMistakes = mistakes;
 
   if (board[row][col] !== num && num !== solution[row][col]) {
     mistakes++;
@@ -709,8 +733,10 @@ function placeNumber(num) {
   }
 
   board[row][col] = num;
+  undoStack.push({ row, col, oldValue, oldMistakes });
+  updateUndoBtn();
   renderBoard();
-  saveGame();      // <-- Gem efter hvert træk
+  saveGame();
   checkWin();
 }
 
@@ -718,7 +744,10 @@ function eraseCell() {
   if (!selected) return;
   const { row, col } = selected;
   if (givens[row][col]) return;
+  if (board[row][col] === 0) return;
+  undoStack.push({ row, col, oldValue: board[row][col], oldMistakes: mistakes });
   board[row][col] = 0;
+  updateUndoBtn();
   renderBoard();
   saveGame();
 }
@@ -727,10 +756,24 @@ function giveHint() {
   if (!selected) return;
   const { row, col } = selected;
   if (givens[row][col]) return;
+  undoStack.push({ row, col, oldValue: board[row][col], oldMistakes: mistakes });
   board[row][col] = solution[row][col];
+  updateUndoBtn();
   renderBoard();
   saveGame();
   checkWin();
+}
+
+function undoAction() {
+  if (undoStack.length === 0) return;
+  const { row, col, oldValue, oldMistakes } = undoStack.pop();
+  board[row][col] = oldValue;
+  mistakes = oldMistakes;
+  document.getElementById('mistakes').textContent = `Fejl: ${mistakes}`;
+  selected = { row, col };
+  updateUndoBtn();
+  renderBoard();
+  saveGame();
 }
 
 function checkWin() {
@@ -769,6 +812,8 @@ function newGame() {
   givens = puzzle.map(row => row.map(v => v !== 0));
   selected = null;
   mistakes = 0;
+  undoStack = [];
+  updateUndoBtn();
   document.getElementById('mistakes').textContent = 'Fejl: 0';
   startTime = Date.now();
   startTimer();
@@ -785,6 +830,8 @@ function resumeGame(state) {
   mistakes = state.mistakes;
   difficulty = state.difficulty;
   selected = null;
+  undoStack = [];
+  updateUndoBtn();
 
   // Sæt startTime så timeren fortsætter hvor den slap
   startTime = Date.now() - (state.elapsedSeconds * 1000);
@@ -817,6 +864,7 @@ numpadEl.querySelectorAll('button').forEach(btn => {
 
 document.getElementById('erase').addEventListener('click', eraseCell);
 document.getElementById('hint').addEventListener('click', giveHint);
+document.getElementById('undoBtn').addEventListener('click', undoAction);
 // Nyt spil med bekræftelse hvis et spil er i gang
 document.getElementById('newgameTop').addEventListener('click', () => {
   // Færdig-dialog er åben: spillet er allerede afsluttet — vis blot sværhedsgrader
@@ -856,6 +904,7 @@ document.getElementById('winNewGame').addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (e.key >= '1' && e.key <= '9') placeNumber(parseInt(e.key));
   if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') eraseCell();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoAction(); }
   if (selected) {
     let { row, col } = selected;
     if (e.key === 'ArrowUp' && row > 0) selected.row--;
