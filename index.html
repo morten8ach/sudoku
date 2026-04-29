@@ -27,12 +27,13 @@
 
   /* LYS TILSTAND (standard) */
   :root {
+    color-scheme: light;
     --bg: #f4f1ea;
     --paper: #fdfbf6;
     --ink: #2a2a2a;
     --muted: #888;
     --line-thin: #c9c2b3;
-    --line-thick: #2a2a2a;
+    --line-thick: #555555;
     --given: #2a2a2a;
     --user: #2563a8;
     --selected: #ffe9a8;
@@ -44,6 +45,7 @@
 
   /* MØRK TILSTAND (når <html> har class="dark") */
   html.dark {
+    color-scheme: dark;
     --bg: #1a1a1a;
     --paper: #252525;
     --ink: #e8e4d8;
@@ -51,7 +53,7 @@
     --line-thin: #3a3a3a;
     --line-thick: #e8e4d8;
     --given: #e8e4d8;
-    --user: #6ba3e0;
+    --user: #90c2f8;
     --selected: #5a6b8a;
     --highlight: #2d3340;
     --same: #3a4456;
@@ -190,11 +192,11 @@
     position: relative;
   }
 
-  .cell:nth-child(3n) { border-right: 2px solid var(--line-thick); }
+  .cell:nth-child(3n) { border-right: 3px solid var(--line-thick); }
   .cell:nth-child(9n) { border-right: none; }
   .cell:nth-child(n+19):nth-child(-n+27),
   .cell:nth-child(n+46):nth-child(-n+54) {
-    border-bottom: 2px solid var(--line-thick);
+    border-bottom: 3px solid var(--line-thick);
   }
   .cell:nth-child(n+73) { border-bottom: none; }
 
