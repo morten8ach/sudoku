@@ -1,5 +1,5 @@
 // Et navn på vores "cache" (lager). Hvis vi ændrer det, hentes alt på ny.
-const CACHE_NAVN = 'sudoku-v17';
+const CACHE_NAVN = 'sudoku-v18';
 
 // Listen over filer der skal gemmes lokalt, så appen virker offline
 const FILER_DER_SKAL_GEMMES = [
