@@ -224,12 +224,12 @@
   .numpad button {
     position: relative;
     flex-shrink: 0;
-    width: calc((min(95vw, 450px) - 16px) / 5);
+    width: calc((min(95vw, 450px) - 16px) / 5 * 0.85);
     aspect-ratio: 1;
     background: var(--paper);
     border: 1px solid var(--line-thick);
     font-family: inherit;
-    font-size: clamp(21px, 5.5vw, 29px);
+    font-size: clamp(18px, 4.7vw, 25px);
     font-variant-numeric: tabular-nums;
     line-height: 1;
     font-weight: bold;
@@ -249,7 +249,7 @@
     position: absolute;
     bottom: 2px;
     right: 4px;
-    font-size: clamp(10px, 2.5vw, 13px);
+    font-size: clamp(9px, 2.1vw, 11px);
     font-weight: normal;
     color: var(--muted);
     line-height: 1;
