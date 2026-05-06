@@ -208,20 +208,28 @@
   .cell.selected { background: var(--selected); }
 
   .numpad {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 4px;
     width: min(95vw, 450px);
     margin-top: 16px;
   }
 
+  .numpad-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+
   .numpad button {
     position: relative;
+    flex-shrink: 0;
+    width: calc((min(95vw, 450px) - 16px) / 5);
     aspect-ratio: 1;
     background: var(--paper);
     border: 1px solid var(--line-thick);
     font-family: inherit;
-    font-size: clamp(16px, 4vw, 22px);
+    font-size: clamp(21px, 5.5vw, 29px);
     font-variant-numeric: tabular-nums;
     line-height: 1;
     font-weight: bold;
@@ -241,7 +249,7 @@
     position: absolute;
     bottom: 2px;
     right: 4px;
-    font-size: clamp(9px, 2vw, 11px);
+    font-size: clamp(10px, 2.5vw, 13px);
     font-weight: normal;
     color: var(--muted);
     line-height: 1;
@@ -440,15 +448,19 @@
 <div class="board" id="board"></div>
 
 <div class="numpad" id="numpad">
-  <button data-num="1">1<span class="count" id="count-1"></span></button>
-  <button data-num="2">2<span class="count" id="count-2"></span></button>
-  <button data-num="3">3<span class="count" id="count-3"></span></button>
-  <button data-num="4">4<span class="count" id="count-4"></span></button>
-  <button data-num="5">5<span class="count" id="count-5"></span></button>
-  <button data-num="6">6<span class="count" id="count-6"></span></button>
-  <button data-num="7">7<span class="count" id="count-7"></span></button>
-  <button data-num="8">8<span class="count" id="count-8"></span></button>
-  <button data-num="9">9<span class="count" id="count-9"></span></button>
+  <div class="numpad-row">
+    <button data-num="1">1<span class="count" id="count-1"></span></button>
+    <button data-num="2">2<span class="count" id="count-2"></span></button>
+    <button data-num="3">3<span class="count" id="count-3"></span></button>
+    <button data-num="4">4<span class="count" id="count-4"></span></button>
+    <button data-num="5">5<span class="count" id="count-5"></span></button>
+  </div>
+  <div class="numpad-row">
+    <button data-num="6">6<span class="count" id="count-6"></span></button>
+    <button data-num="7">7<span class="count" id="count-7"></span></button>
+    <button data-num="8">8<span class="count" id="count-8"></span></button>
+    <button data-num="9">9<span class="count" id="count-9"></span></button>
+  </div>
 </div>
 
 <div class="actions">
@@ -722,7 +734,7 @@ function updateUndoBtn() {
 }
 
 function placeNumber(num) {
-  if (!selected) return;
+  if (!gameActive || !selected) return;
   const { row, col } = selected;
   if (givens[row][col]) return;
 
@@ -743,7 +755,7 @@ function placeNumber(num) {
 }
 
 function eraseCell() {
-  if (!selected) return;
+  if (!gameActive || !selected) return;
   const { row, col } = selected;
   if (givens[row][col]) return;
   if (board[row][col] === 0) return;
@@ -755,7 +767,7 @@ function eraseCell() {
 }
 
 function giveHint() {
-  if (!selected) return;
+  if (!gameActive || !selected) return;
   const { row, col } = selected;
   if (givens[row][col]) return;
   undoStack.push({ row, col, oldValue: board[row][col], oldMistakes: mistakes });
@@ -785,13 +797,16 @@ function checkWin() {
     }
   }
   // Vundet!
+  gameActive = false;
   clearInterval(timerInterval);
+  timerInterval = null;
   clearSavedGame();   // Det gemte spil er ikke længere aktuelt
   const elapsed = Math.floor((Date.now() - startTime) / 1000);
   const min = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const sec = String(elapsed % 60).padStart(2, '0');
   document.getElementById('winStats').textContent =
     `Tid: ${min}:${sec} • Fejl: ${mistakes}`;
+  document.getElementById('overlay').classList.add('show');
   document.getElementById('winMessage').classList.add('show');
 }
 
@@ -806,6 +821,7 @@ function startTimer() {
 }
 
 function newGame() {
+  document.getElementById('overlay').classList.remove('show');
   document.getElementById('winMessage').classList.remove('show');
   hideDifficultyPicker();
   const { puzzle, solution: sol } = makePuzzle(difficulty);
@@ -871,6 +887,7 @@ document.getElementById('undoBtn').addEventListener('click', undoAction);
 document.getElementById('newgameTop').addEventListener('click', () => {
   // Færdig-dialog er åben: spillet er allerede afsluttet — vis blot sværhedsgrader
   if (document.getElementById('winMessage').classList.contains('show')) {
+    document.getElementById('overlay').classList.remove('show');
     document.getElementById('winMessage').classList.remove('show');
     showDifficultyPicker();
     return;
@@ -899,6 +916,7 @@ document.getElementById('confirmOK').addEventListener('click', () => {
 document.getElementById('overlay').addEventListener('click', lukDialog);
 
 document.getElementById('winNewGame').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
   document.getElementById('winMessage').classList.remove('show');
   showDifficultyPicker();
 });
