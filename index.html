@@ -94,9 +94,9 @@
   }
 
   .subtitle {
-    font-size: 12px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-style: italic;
+    letter-spacing: 0.1em;
     color: var(--muted);
   }
 
@@ -210,21 +210,21 @@
   .numpad {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     width: min(95vw, 450px);
     margin-top: 16px;
   }
 
   .numpad-row {
     display: flex;
-    gap: 4px;
+    gap: 20px;
     justify-content: center;
   }
 
   .numpad button {
     position: relative;
     flex-shrink: 0;
-    width: calc((min(95vw, 450px) - 16px) / 5 * 0.85);
+    width: calc((min(95vw, 450px) - 80px) / 5);
     aspect-ratio: 1;
     background: var(--paper);
     border: 1px solid var(--line-thick);
@@ -403,17 +403,6 @@
     color: var(--paper);
   }
 
-  /* Signatur nederst */
-  .signature {
-    margin-top: 32px;
-    margin-bottom: 16px;
-    font-size: 11px;
-    font-style: italic;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    text-align: center;
-  }
-
   /* SVG-ikoner i cirkelknapperne sidder altid præcist i midten */
   .header-btn svg { display: block; }
 
@@ -430,7 +419,7 @@
 <header>
   <button class="header-btn header-btn-left" id="newgameTop" title="Nyt spil" aria-label="Nyt spil"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
   <h1>Sudoku</h1>
-  <div class="subtitle">Et tal-puslespil</div>
+  <div class="subtitle">— Morten Bach —</div>
   <button class="header-btn header-btn-right" id="themeToggle" title="Skift mellem lys og mørk"></button>
 </header>
 
@@ -956,7 +945,6 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<div class="signature">— Morten Bach —</div>
 
 </body>
 </html>
