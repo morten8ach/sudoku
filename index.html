@@ -54,9 +54,9 @@
     --line-thick: #e8e4d8;
     --given: #e8e4d8;
     --user: #90c2f8;
-    --selected: #5a6b8a;
-    --highlight: #2d3340;
-    --same: #3a4456;
+    --selected: #6a7b9e;
+    --highlight: #363d50;
+    --same: #465368;
     --error: #ff6b6b;
     --shadow: rgba(0,0,0,0.4);
   }
@@ -553,6 +553,27 @@ function fillBoard(b) {
   return true;
 }
 
+// Tæller antal løsninger op til `limit`. Arbejder in-place men restorer altid.
+function countSolutions(b, limit = 2) {
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (b[row][col] === 0) {
+        let count = 0;
+        for (let num = 1; num <= 9; num++) {
+          if (isValid(b, row, col, num)) {
+            b[row][col] = num;
+            count += countSolutions(b, limit - count);
+            b[row][col] = 0;
+            if (count >= limit) return count;
+          }
+        }
+        return count;
+      }
+    }
+  }
+  return 1;
+}
+
 function makePuzzle(diff) {
   const sol = emptyBoard();
   fillBoard(sol);
@@ -569,8 +590,14 @@ function makePuzzle(diff) {
 
   for (const [r, c] of positions) {
     if (toRemove <= 0) break;
+    const backup = puzzle[r][c];
     puzzle[r][c] = 0;
-    toRemove--;
+    // Behold kun fjernelsen hvis puzzlen stadig har præcis én løsning
+    if (countSolutions(puzzle) !== 1) {
+      puzzle[r][c] = backup;
+    } else {
+      toRemove--;
+    }
   }
 
   return { puzzle, solution: sol };
